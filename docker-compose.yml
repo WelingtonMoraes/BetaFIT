@@ -1,0 +1,56 @@
+version: "3.7"
+services:
+  app:
+    build:
+      args:
+        user: well
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    image: travellist
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    networks:
+      - network-app
+
+  db:
+    image: mysql:5.7
+    restart: unless-stopped
+    command: --innodb-use-native-aio=0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: database
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - network-app
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    links:
+      - db
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_ARBITRARY=1
+    networks:
+      - network-app
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d/
+    networks:
+      - network-app
+
+networks:
+  network-app:
+    driver: bridge
